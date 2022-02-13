@@ -1,0 +1,29 @@
+<resources>
+    <string name="app_name">Bull_Car_Shit</string>
+    <string name="bull_car_shit">BULL car SHiT</string>
+    <string name="navigation_drawer_open">Open navigation drawer</string>
+    <string name="navigation_drawer_close">Close navigation drawer</string>
+    <string name="nav_header_title">Android Studio</string>
+    <string name="nav_header_subtitle">Об автомобилях</string>
+    <string name="nav_header_desc">Navigation header</string>
+    <string name="action_settings">Settings</string>
+
+    <string name="menu_home">Home</string>
+    <string name="menu_gallery">Gallery</string>
+    <string name="menu_slideshow">Slideshow</string>
+
+    <string name="menu_popular">Популярные модели авто</string>
+    <string name="menu_allBrands">Все марки автомобилей</string>
+    <string name="menu_geography">География брендов</string>
+    <string name="menu_newcar">Новинки от производителей</string>
+
+
+    <string name="hello_blank_fragment">Hello blank fragment</string>
+    <string name="brands">Бренд</string>
+    <string name="models">Модель</string>
+    <string name="generation">Год выпуска</string>
+    <string name="hint1">НЕ Выбрана марка</string>
+    <string name="ButText">Показать</string>
+    <string name="vvodTextView">введено...</string>
+    <string name="brand_open_activity">brand_open_Activity</string>
+</resources>

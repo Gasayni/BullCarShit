@@ -1,0 +1,280 @@
+<?xml version="1.0" encoding="utf-8"?>
+<TableLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".ui.home.HomeFragment">
+
+    <TableRow
+        android:layout_width="match_parent"
+        android:layout_height="0sp"
+        android:layout_weight="1">
+
+        <ScrollView
+            android:layout_width="0sp"
+            android:layout_height="match_parent"
+            android:layout_weight="1">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical" >
+
+                <TableRow
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent" >
+
+                    <ImageView
+                        android:id="@+id/alfa_romeo"
+                        android:layout_width="0sp"
+                        android:layout_height="100sp"
+                        android:layout_weight="1"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:src="@drawable/alfa_romeo"
+                        tools:ignore="SpeakableTextPresentCheck" />
+
+                    <ImageView
+                        android:id="@+id/audi"
+                        android:layout_width="0sp"
+                        android:layout_weight="1"
+                        android:layout_height="100sp"
+                        android:src="@drawable/audi" />
+
+                    <ImageView
+                        android:id="@+id/bentley"
+                        android:layout_width="0sp"
+                        android:layout_weight="1"
+                        android:layout_height="100sp"
+                        android:src="@drawable/bentley" />
+                </TableRow>
+
+                <TableRow
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent" >
+
+                    <ImageView
+                        android:id="@+id/borgward"
+                        android:layout_width="0sp"
+                        android:layout_weight="1"
+                        android:layout_height="100sp"
+                        android:src="@drawable/borgward" />
+
+                    <ImageView
+                        android:id="@+id/bmw"
+                        android:layout_width="0sp"
+                        android:layout_weight="1"
+                        android:layout_height="100sp"
+                        android:src="@drawable/bmw" />
+
+                    <ImageView
+                        android:id="@+id/bugatti"
+                        android:layout_width="0sp"
+                        android:layout_weight="1"
+                        android:layout_height="100sp"
+                        android:src="@drawable/bugatti" />
+                </TableRow>
+
+                <TableRow
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent" >
+
+                    <ImageView
+                        android:id="@+id/citroen"
+                        android:layout_width="0sp"
+                        android:layout_weight="1"
+                        android:layout_height="100sp"
+                        android:src="@drawable/citroen" />
+
+                    <ImageView
+                        android:id="@+id/dacia"
+                        android:layout_width="0sp"
+                        android:layout_weight="1"
+                        android:layout_height="100sp"
+                        android:src="@drawable/dacia" />
+
+                    <ImageView
+                        android:id="@+id/ds"
+                        android:layout_width="0sp"
+                        android:layout_weight="1"
+                        android:layout_height="100sp"
+                        android:src="@drawable/ds" />
+                </TableRow>
+
+                <TableRow
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent" >
+
+                    <ImageView
+                        android:id="@+id/lamborghini"
+                        android:layout_width="0sp"
+                        android:layout_weight="1"
+                        android:layout_height="100sp"
+                        android:src="@drawable/lamborghini" />
+
+                    <ImageView
+                        android:id="@+id/ferrari"
+                        android:layout_width="0sp"
+                        android:layout_weight="1"
+                        android:layout_height="100sp"
+                        android:src="@drawable/ferrari" />
+
+                    <ImageView
+                        android:id="@+id/jaguar"
+                        android:layout_width="0sp"
+                        android:layout_weight="1"
+                        android:layout_height="100sp"
+                        android:src="@drawable/jaguar" />
+
+                </TableRow>
+
+                <TableRow
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent" >
+
+                    <ImageView
+                        android:id="@+id/land_rover"
+                        android:layout_width="0sp"
+                        android:layout_weight="1"
+                        android:layout_height="100sp"
+                        android:src="@drawable/land_rover" />
+
+                    <ImageView
+                        android:id="@+id/lotus"
+                        android:layout_width="0sp"
+                        android:layout_weight="1"
+                        android:layout_height="100sp"
+                        android:src="@drawable/lotus" />
+
+                    <ImageView
+                        android:id="@+id/mercedes_benz"
+                        android:layout_width="0sp"
+                        android:layout_weight="1"
+                        android:layout_height="100sp"
+                        android:src="@drawable/mercedes_benz" />
+                </TableRow>
+
+                <TableRow
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent" >
+
+                    <ImageView
+                        android:id="@+id/mini"
+                        android:layout_width="0sp"
+                        android:layout_weight="1"
+                        android:layout_height="100sp"
+                        android:src="@drawable/mini" />
+
+                    <ImageView
+                        android:id="@+id/opel"
+                        android:layout_width="0sp"
+                        android:layout_weight="1"
+                        android:layout_height="100sp"
+                        android:src="@drawable/opel" />
+
+                    <ImageView
+                        android:id="@+id/peugeot"
+                        android:layout_width="0sp"
+                        android:layout_weight="1"
+                        android:layout_height="100sp"
+                        android:src="@drawable/peugeot" />
+                </TableRow>
+
+                <TableRow
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent" >
+
+                    <ImageView
+                        android:id="@+id/polestar"
+                        android:layout_width="0sp"
+                        android:layout_weight="1"
+                        android:layout_height="100sp"
+                        android:src="@drawable/polestar" />
+
+                    <ImageView
+                        android:id="@+id/porsche"
+                        android:layout_width="0sp"
+                        android:layout_weight="1"
+                        android:layout_height="100sp"
+                        android:src="@drawable/porsche" />
+
+                    <ImageView
+                        android:id="@+id/renault"
+                        android:layout_width="0sp"
+                        android:layout_weight="1"
+                        android:layout_height="100sp"
+                        android:src="@drawable/renault" />
+                </TableRow>
+                <TableRow
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent" >
+
+                    <ImageView
+                        android:id="@+id/rolls_royce"
+                        android:layout_width="0sp"
+                        android:layout_weight="1"
+                        android:layout_height="100sp"
+                        android:src="@drawable/rolls_royce" />
+
+                    <ImageView
+                        android:id="@+id/saab"
+                        android:layout_width="0sp"
+                        android:layout_weight="1"
+                        android:layout_height="100sp"
+                        android:src="@drawable/saab" />
+
+                    <ImageView
+                        android:id="@+id/santana"
+                        android:layout_width="0sp"
+                        android:layout_weight="1"
+                        android:layout_height="100sp"
+                        android:src="@drawable/santana" />
+                </TableRow>
+                <TableRow
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent" >
+
+                    <ImageView
+                        android:id="@+id/seat"
+                        android:layout_width="0sp"
+                        android:layout_weight="1"
+                        android:layout_height="100sp"
+                        android:src="@drawable/seat" />
+
+                    <ImageView
+                        android:id="@+id/skoda"
+                        android:layout_width="0sp"
+                        android:layout_weight="1"
+                        android:layout_height="100sp"
+                        android:src="@drawable/skoda" />
+
+                    <ImageView
+                        android:id="@+id/smart"
+                        android:layout_width="0sp"
+                        android:layout_weight="1"
+                        android:layout_height="100sp"
+                        android:src="@drawable/smart" />
+                </TableRow>
+                <TableRow
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent" >
+
+                    <ImageView
+                        android:id="@+id/volkswagen"
+                        android:layout_width="0sp"
+                        android:layout_weight="1"
+                        android:layout_height="100sp"
+                        android:src="@drawable/volkswagen" />
+
+                    <ImageView
+                        android:id="@+id/volvo"
+                        android:layout_width="0sp"
+                        android:layout_weight="1"
+                        android:layout_height="100sp"
+                        android:src="@drawable/volvo" />
+                </TableRow>
+            </LinearLayout>
+        </ScrollView>
+    </TableRow>
+</TableLayout>
