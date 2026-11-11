@@ -1,0 +1,583 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Цветной рейс</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik:wght@500;700;800&display=swap">
+<style>
+  /* Один осознанный вид: светлый «асфальт» с игрушечными машинками. Тёмной темы нет намеренно. */
+  :root {
+    --ground: #e7ebf2;      /* фон площадки */
+    --asphalt: #59607a;     /* дорога и слоты */
+    --ink: #1f2440;         /* текст */
+    --paper: #ffffff;       /* карточки */
+    --accent: #ff7a1a;      /* кнопки */
+    --accent-ink: #ffffff;
+    --muted: #6b7290;
+    --font: "Rubik", "Segoe UI", system-ui, -apple-system, sans-serif;
+    color-scheme: light;
+  }
+  [hidden] { display: none !important; }
+  html, body { height: 100%; margin: 0; background: var(--ground); color: var(--ink); font-family: var(--font); }
+  body { overflow: hidden; -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; }
+  #app {
+    position: fixed;
+    inset: env(safe-area-inset-top, 0px) 0 env(safe-area-inset-bottom, 0px) 0;
+    display: flex; flex-direction: column;
+    max-width: 560px; margin: 0 auto;
+  }
+  .bar {
+    display: flex; align-items: center; gap: 12px;
+    padding-block: 10px;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+  }
+  .lvl { display: flex; align-items: baseline; gap: 6px; font-weight: 800; font-size: 20px; }
+  .lvl .lbl { font-size: 13px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+  .lvl .of { color: var(--muted); font-size: 15px; }
+  .pax { margin-left: auto; font-weight: 700; font-size: 14px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .pax b { color: var(--ink); font-size: 18px; }
+  button {
+    font: 700 15px var(--font); border: 0; border-radius: 12px; padding: 10px 14px; cursor: pointer;
+    background: var(--paper); color: var(--ink); box-shadow: 0 3px 0 #c5cbdb; white-space: nowrap;
+  }
+  button:active { transform: translateY(2px); box-shadow: 0 1px 0 #c5cbdb; }
+  button.primary { background: var(--accent); color: var(--accent-ink); box-shadow: 0 3px 0 #c45500; }
+  button:disabled { opacity: .45; cursor: default; }
+  button:focus-visible { outline: 3px solid #2f7de1; outline-offset: 2px; }
+  canvas { flex: 1; min-height: 0; width: 100%; display: block; touch-action: manipulation; }
+  .bottom { justify-content: space-between; }
+  .hint { font-size: 13px; color: var(--muted); text-align: right; }
+  #toast {
+    position: absolute; left: 50%; top: 64px; transform: translateX(-50%);
+    background: var(--ink); color: #fff; padding: 8px 14px; border-radius: 10px; font-size: 14px; font-weight: 500;
+    pointer-events: none; white-space: nowrap;
+  }
+  #modal {
+    position: absolute; inset: 0; display: grid; place-items: center; background: rgba(31, 36, 64, .45);
+    padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  }
+  .card { background: var(--paper); border-radius: 20px; padding: 24px; width: min(340px, 100%); text-align: center; display: grid; gap: 12px; }
+  .card h2 { margin: 0; font-size: 26px; font-weight: 800; text-wrap: balance; }
+  .card p { margin: 0; color: var(--muted); font-size: 15px; line-height: 1.4; }
+  .actions { display: grid; gap: 10px; margin-top: 6px; }
+  @media (prefers-reduced-motion: reduce) { button:active { transform: none; } }
+</style>
+</head>
+<body>
+<div id="app">
+  <header class="bar">
+    <div class="lvl"><span class="lbl">Уровень</span> <span id="lvlNum">1</span><span class="of">/3</span></div>
+    <div class="pax">ждут: <b id="paxLeft">0</b></div>
+    <button id="restartBtn" type="button">Заново</button>
+  </header>
+  <canvas id="cv" aria-label="Игровое поле"></canvas>
+  <footer class="bar bottom">
+    <button id="bonusBtn" type="button">+1 место</button>
+    <div class="hint" id="hint">Нажми на машину — она поедет по стрелке</div>
+  </footer>
+  <div id="toast" hidden></div>
+  <div id="modal" hidden>
+    <div class="card" role="dialog" aria-modal="true" aria-labelledby="mTitle">
+      <h2 id="mTitle"></h2>
+      <p id="mText"></p>
+      <div class="actions" id="mActions"></div>
+    </div>
+  </div>
+</div>
+<script src="engine.js"></script>
+<script>
+(() => {
+  'use strict';
+  const E = window.BusEngine;
+  const MAX_SLOTS = 5;
+  const PALETTE = [
+    { base: '#ec4a3c', dark: '#a8261b', light: '#ff8a7d' }, // красный
+    { base: '#2f7de1', dark: '#1a4f99', light: '#7fb3f5' }, // синий
+    { base: '#36b955', dark: '#1d7a33', light: '#7fe095' }, // зелёный
+    { base: '#f5c021', dark: '#b08300', light: '#ffe17a' }, // жёлтый
+    { base: '#9b57d6', dark: '#62309a', light: '#c99cf0' }, // фиолетовый
+    { base: '#22c3d6', dark: '#0d8090', light: '#86e6f1' }, // голубой
+  ];
+  const ANGLE = { R: 0, D: Math.PI / 2, L: Math.PI, U: -Math.PI / 2 };
+
+  const cv = document.getElementById('cv');
+  const ctx = cv.getContext('2d');
+  const $ = (id) => document.getElementById(id);
+  let W = 0, H = 0, dpr = 1, L = null, S = null;
+
+  let unlocked = 0;
+  try { unlocked = Math.min(E.LEVELS.length - 1, parseInt(localStorage.getItem('cr.unlocked') || '0', 10) || 0); } catch (e) {}
+
+  // ---------- уровень ----------
+  function startLevel(idx) {
+    const lv = E.makeLevel(E.LEVELS[idx]);
+    S = {
+      idx, w: lv.w, h: lv.h,
+      vehicles: lv.vehicles.map((v) => ({ ...v, seats: v.cap, state: 'board', anim: null, flash: 0 })),
+      queue: lv.queue, head: 0,
+      slots: new Array(lv.slots).fill(null),
+      bonusUsed: false, over: false, endTimer: 0, boardTimer: 0, moved: false,
+      flyers: [],
+      qx: new Float32Array(lv.queue.length), qy: new Float32Array(lv.queue.length), qSeen: new Uint8Array(lv.queue.length),
+    };
+    S.occ = E.makeOcc(S.w, S.h, S.vehicles);
+    $('lvlNum').textContent = idx + 1;
+    $('hint').hidden = false;
+    hideModal();
+    layout();
+    hud();
+  }
+
+  function hud() {
+    $('paxLeft').textContent = S.queue.length - S.head;
+    $('bonusBtn').disabled = S.bonusUsed || S.over;
+  }
+
+  // ---------- раскладка ----------
+  function layout() {
+    const r = cv.getBoundingClientRect();
+    W = r.width; H = r.height; dpr = window.devicePixelRatio || 1;
+    cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+    const pad = 16;
+    const qTop = 4, qH = Math.max(90, Math.round(H * 0.22));
+    const pr = Math.max(6, Math.min(11, (W - 2 * pad) / 34));
+    const step = pr * 2.35;
+    const cols = Math.floor((W - 2 * pad - 12) / step);
+    const rows = Math.max(1, Math.floor((qH - 12) / step));
+    const qLeft = (W - cols * step) / 2 + step / 2;
+    const gap = 10;
+    const slotW = Math.min(64, (W - 2 * pad - (MAX_SLOTS - 1) * gap) / MAX_SLOTS);
+    const slotH = slotW * 1.5;
+    const slotsTop = qTop + qH + 12;
+    const slotsLeft = (W - (MAX_SLOTS * slotW + (MAX_SLOTS - 1) * gap)) / 2;
+    const roadY = slotsTop + slotH + 30;
+    const boardTop = roadY + 22;
+    const availH = H - boardTop - 8;
+    const cs = Math.max(8, Math.min((W - 2 * pad) / S.w, availH / S.h));
+    const bx = (W - cs * S.w) / 2, by = boardTop + Math.max(0, (availH - cs * S.h) / 2);
+    L = { pad, qTop, qH, pr, step, cols, rows, qLeft, slotW, slotH, slotsTop, slotsLeft, gap, roadY, cs, bx, by };
+  }
+
+  const slotCenter = (s) => ({ x: L.slotsLeft + s * (L.slotW + L.gap) + L.slotW / 2, y: L.slotsTop + L.slotH / 2 });
+  const boardSize = (v) => ({ len: v.len * L.cs - L.cs * 0.16, wid: L.cs * 0.8 });
+  const slotSize = () => ({ len: L.slotH * 0.86, wid: L.slotW * 0.66 });
+
+  function boardCenter(v) {
+    const horiz = v.dir === 'L' || v.dir === 'R';
+    const cx = L.bx + (v.x + (horiz ? v.len / 2 : 0.5)) * L.cs;
+    const cy = L.by + (v.y + (horiz ? 0.5 : v.len / 2)) * L.cs;
+    return { x: cx, y: cy };
+  }
+
+  function queueTarget(k) {
+    const row = Math.floor(k / L.cols);
+    let c = k % L.cols;
+    if (row % 2 === 1) c = L.cols - 1 - c;
+    return { x: L.qLeft + c * L.step, y: L.qTop + L.qH - L.step * 0.6 - row * L.step };
+  }
+
+  // ---------- движение ----------
+  function makePath(points) {
+    const segs = [];
+    let total = 0;
+    for (let i = 1; i < points.length; i++) {
+      const a = points[i - 1], b = points[i];
+      const len = Math.hypot(b.x - a.x, b.y - a.y);
+      if (len < 0.5) continue;
+      segs.push({ a, b, len, start: total });
+      total += len;
+    }
+    return { segs, total, d: 0 };
+  }
+  function pathPoint(p) {
+    if (!p.segs.length) return null;
+    let seg = p.segs[p.segs.length - 1];
+    for (const s of p.segs) if (p.d <= s.start + s.len) { seg = s; break; }
+    const t = Math.min(1, Math.max(0, (p.d - seg.start) / seg.len));
+    return { x: seg.a.x + (seg.b.x - seg.a.x) * t, y: seg.a.y + (seg.b.y - seg.a.y) * t, ang: Math.atan2(seg.b.y - seg.a.y, seg.b.x - seg.a.x) };
+  }
+
+  function exitPath(v, s) {
+    const c = boardCenter(v);
+    const [dx, dy] = E.DIRS[v.dir];
+    let d;
+    if (v.dir === 'R') d = (S.w - v.x) * L.cs + L.cs * 0.4;
+    else if (v.dir === 'L') d = (v.x + v.len) * L.cs + L.cs * 0.4;
+    else if (v.dir === 'D') d = (S.h - v.y) * L.cs + L.cs * 0.4;
+    else d = (v.y + v.len) * L.cs - L.cs * 0.2;
+    const p1 = { x: c.x + dx * d, y: c.y + dy * d };
+    const sc = slotCenter(s);
+    const road = L.roadY;
+    const pts = [c, p1];
+    if (v.dir === 'D') {
+      const left = c.x < W / 2;
+      const sideX = left ? Math.max(10, L.bx - L.cs * 0.6) : Math.min(W - 10, L.bx + S.w * L.cs + L.cs * 0.6);
+      pts.push({ x: sideX, y: p1.y }, { x: sideX, y: road });
+    } else if (v.dir !== 'U') {
+      pts.push({ x: p1.x, y: road });
+    }
+    pts.push({ x: sc.x, y: road }, sc);
+    return makePath(pts);
+  }
+
+  function departPath(s) {
+    const sc = slotCenter(s);
+    return makePath([sc, { x: sc.x, y: L.roadY }, { x: W + 80, y: L.roadY }]);
+  }
+
+  // ---------- ввод ----------
+  cv.addEventListener('pointerdown', (ev) => {
+    if (!S || S.over) return;
+    const r = cv.getBoundingClientRect();
+    const px = ev.clientX - r.left, py = ev.clientY - r.top;
+    const gx = Math.floor((px - L.bx) / L.cs), gy = Math.floor((py - L.by) / L.cs);
+    if (gx < 0 || gy < 0 || gx >= S.w || gy >= S.h) return;
+    const id = S.occ[gy * S.w + gx];
+    if (id === -1) return;
+    tapVehicle(S.vehicles[id]);
+  });
+
+  function tapVehicle(v) {
+    if (v.state !== 'board') return;
+    const s = S.slots.indexOf(null);
+    if (s === -1) {
+      toast('Все места заняты — дождись посадки');
+      v.anim = { t: 0, dur: 220, dist: L.cs * 0.12 };
+      return;
+    }
+    const blk = E.firstBlocker(v, S.occ, S.w, S.h);
+    if (blk.id !== -1) {
+      v.anim = { t: 0, dur: 240 + blk.dist * 50, dist: blk.dist * L.cs + L.cs * 0.14 };
+      S.vehicles[blk.id].flash = 360;
+      return;
+    }
+    E.clearOcc(S.occ, S.w, v);
+    S.slots[s] = v.id;
+    v.slot = s;
+    v.state = 'driving';
+    v.path = exitPath(v, s);
+    v.ang = ANGLE[v.dir];
+    if (!S.moved) { S.moved = true; $('hint').hidden = true; }
+  }
+
+  // ---------- обновление ----------
+  function update(dt) {
+    for (const v of S.vehicles) {
+      if (v.flash > 0) v.flash -= dt;
+      if (v.state === 'board' && v.anim) {
+        v.anim.t += dt;
+        if (v.anim.t >= v.anim.dur) v.anim = null;
+      } else if (v.state === 'driving' || v.state === 'departing') {
+        v.path.d += dt * (v.state === 'driving' ? 1.15 : 0.9);
+        const p = pathPoint(v.path);
+        if (p) {
+          let diff = p.ang - v.ang;
+          while (diff > Math.PI) diff -= 2 * Math.PI;
+          while (diff < -Math.PI) diff += 2 * Math.PI;
+          v.ang += diff * Math.min(1, dt * 0.025);
+        }
+        if (v.path.d >= v.path.total) {
+          if (v.state === 'driving') { v.state = 'parked'; v.ang = -Math.PI / 2; }
+          else { v.state = 'gone'; S.slots[v.slot] = null; }
+        }
+      } else if (v.state === 'full') {
+        v.wait -= dt;
+        if (v.wait <= 0) { v.state = 'departing'; v.path = departPath(v.slot); v.ang = -Math.PI / 2; }
+      }
+    }
+
+    // посадка
+    S.boardTimer -= dt;
+    while (S.boardTimer <= 0 && S.head < S.queue.length) {
+      const c = S.queue[S.head];
+      const s = S.slots.findIndex((id) => id !== null && S.vehicles[id].state === 'parked' && S.vehicles[id].color === c && S.vehicles[id].seats > 0);
+      if (s === -1) { S.boardTimer = 0; break; }
+      const v = S.vehicles[S.slots[s]];
+      v.seats--;
+      const from = S.qSeen[S.head] ? { x: S.qx[S.head], y: S.qy[S.head] } : queueTarget(0);
+      S.flyers.push({ from, to: slotCenter(s), t: 0, color: c });
+      S.head++;
+      S.boardTimer += 55;
+      if (v.seats === 0) { v.state = 'full'; v.wait = 260; }
+      hud();
+    }
+    if (S.boardTimer < 0) S.boardTimer = 0;
+
+    S.flyers = S.flyers.filter((f) => (f.t += dt) < 260);
+
+    // очередь плавно подтягивается
+    const visible = Math.min(S.queue.length - S.head, L.cols * L.rows);
+    const k = Math.min(1, dt * 0.012);
+    for (let i = 0; i < visible; i++) {
+      const qi = S.head + i;
+      const t = queueTarget(i);
+      if (!S.qSeen[qi]) { S.qSeen[qi] = 1; S.qx[qi] = t.x; S.qy[qi] = t.y - L.step; }
+      S.qx[qi] += (t.x - S.qx[qi]) * k;
+      S.qy[qi] += (t.y - S.qy[qi]) * k;
+    }
+
+    checkEnd(dt);
+  }
+
+  function checkEnd(dt) {
+    if (S.over) return;
+    const busy = S.vehicles.some((v) => v.state === 'driving' || v.state === 'departing' || v.state === 'full') || S.flyers.length;
+    if (S.head === S.queue.length && S.vehicles.every((v) => v.state === 'gone')) {
+      S.over = true;
+      setTimeout(win, 350);
+      return;
+    }
+    if (busy) { S.endTimer = 0; return; }
+    const full = S.slots.every((id) => id !== null);
+    const c = S.queue[S.head];
+    const canBoard = S.slots.some((id) => id !== null && S.vehicles[id].color === c && S.vehicles[id].seats > 0);
+    if (full && !canBoard) {
+      S.endTimer += dt;
+      if (S.endTimer > 400) { S.over = true; lose(); }
+    } else S.endTimer = 0;
+  }
+
+  // ---------- отрисовка ----------
+  function rr(x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.roundRect ? ctx.roundRect(x, y, w, h, r) : ctx.rect(x, y, w, h);
+  }
+
+  function drawVehicle(x, y, ang, len, wid, color, alpha, flash) {
+    const p = PALETTE[color];
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.translate(x, y);
+    ctx.rotate(ang);
+    // тень
+    ctx.fillStyle = 'rgba(31,36,64,.18)';
+    rr(-len / 2 + 1, -wid / 2 + 3, len, wid, wid * 0.3); ctx.fill();
+    // корпус
+    ctx.fillStyle = p.base;
+    rr(-len / 2, -wid / 2, len, wid, wid * 0.3); ctx.fill();
+    ctx.lineWidth = Math.max(1.5, wid * 0.06);
+    ctx.strokeStyle = flash > 0 ? '#ffffff' : p.dark;
+    if (flash > 0) ctx.lineWidth *= 2;
+    ctx.stroke();
+    // крыша
+    ctx.fillStyle = p.light;
+    rr(-len / 2 + wid * 0.32, -wid * 0.3, len - wid * 0.62, wid * 0.6, wid * 0.16); ctx.fill();
+    // лобовое и заднее стекло
+    ctx.fillStyle = '#2b3150';
+    rr(len / 2 - wid * 0.3, -wid * 0.32, wid * 0.16, wid * 0.64, wid * 0.06); ctx.fill();
+    rr(-len / 2 + wid * 0.12, -wid * 0.26, wid * 0.1, wid * 0.52, wid * 0.04); ctx.fill();
+    // стрелка
+    const a = Math.min(len * 0.26, wid * 0.7);
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = Math.max(2, wid * 0.11);
+    ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    ctx.beginPath();
+    ctx.moveTo(-a, 0); ctx.lineTo(a, 0);
+    ctx.moveTo(a - wid * 0.24, -wid * 0.2); ctx.lineTo(a, 0); ctx.lineTo(a - wid * 0.24, wid * 0.2);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawPassenger(x, y, r, color) {
+    const p = PALETTE[color];
+    ctx.fillStyle = p.dark;
+    ctx.beginPath(); ctx.arc(x, y + r * 0.25, r, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = p.base;
+    ctx.beginPath(); ctx.arc(x, y, r * 0.92, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = p.light;
+    ctx.beginPath(); ctx.arc(x - r * 0.3, y - r * 0.3, r * 0.32, 0, Math.PI * 2); ctx.fill();
+  }
+
+  function draw() {
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, W, H);
+
+    // площадка очереди
+    ctx.fillStyle = '#d6dbe7';
+    rr(L.pad, L.qTop, W - 2 * L.pad, L.qH, 18); ctx.fill();
+    const visible = Math.min(S.queue.length - S.head, L.cols * L.rows);
+    for (let i = visible - 1; i >= 0; i--) {
+      const qi = S.head + i;
+      drawPassenger(S.qx[qi], S.qy[qi], L.pr, S.queue[qi]);
+    }
+    const hidden = S.queue.length - S.head - visible;
+    if (hidden > 0) {
+      ctx.fillStyle = '#6b7290';
+      ctx.font = '700 12px Rubik, system-ui, sans-serif';
+      ctx.textAlign = 'right';
+      ctx.fillText('+' + hidden, W - L.pad - 8, L.qTop + 14);
+    }
+
+    // дорога
+    ctx.fillStyle = '#59607a';
+    rr(0, L.slotsTop - 8, W, L.roadY - L.slotsTop + 20, 0); ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,.55)';
+    ctx.setLineDash([14, 12]); ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(0, L.roadY); ctx.lineTo(W, L.roadY); ctx.stroke();
+    ctx.setLineDash([]);
+
+    // слоты
+    for (let s = 0; s < MAX_SLOTS; s++) {
+      const x = L.slotsLeft + s * (L.slotW + L.gap), y = L.slotsTop;
+      const active = s < S.slots.length;
+      ctx.fillStyle = active ? '#4a5069' : 'rgba(74,80,105,.5)';
+      rr(x, y, L.slotW, L.slotH, 10); ctx.fill();
+      ctx.strokeStyle = 'rgba(255,255,255,.35)';
+      ctx.lineWidth = 2;
+      if (!active) ctx.setLineDash([5, 5]);
+      ctx.stroke(); ctx.setLineDash([]);
+      if (!active && !S.bonusUsed) {
+        ctx.fillStyle = '#7fe095';
+        ctx.font = '800 24px Rubik, system-ui, sans-serif';
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText('+', x + L.slotW / 2, y + L.slotH / 2);
+        ctx.textBaseline = 'alphabetic';
+      }
+    }
+
+    // поле
+    ctx.fillStyle = '#d6dbe7';
+    rr(L.bx - 6, L.by - 6, S.w * L.cs + 12, S.h * L.cs + 12, 14); ctx.fill();
+    ctx.strokeStyle = 'rgba(31,36,64,.07)'; ctx.lineWidth = 1;
+    for (let i = 1; i < S.w; i++) { ctx.beginPath(); ctx.moveTo(L.bx + i * L.cs, L.by); ctx.lineTo(L.bx + i * L.cs, L.by + S.h * L.cs); ctx.stroke(); }
+    for (let j = 1; j < S.h; j++) { ctx.beginPath(); ctx.moveTo(L.bx, L.by + j * L.cs); ctx.lineTo(L.bx + S.w * L.cs, L.by + j * L.cs); ctx.stroke(); }
+
+    for (const v of S.vehicles) {
+      if (v.state !== 'board') continue;
+      const c = boardCenter(v), sz = boardSize(v);
+      let off = 0;
+      if (v.anim) off = Math.sin(Math.PI * (v.anim.t / v.anim.dur)) * v.anim.dist;
+      const [dx, dy] = E.DIRS[v.dir];
+      drawVehicle(c.x + dx * off, c.y + dy * off, ANGLE[v.dir], sz.len, sz.wid, v.color, 1, v.flash);
+    }
+
+    // машины в пути и на парковке
+    const ss = slotSize();
+    for (const v of S.vehicles) {
+      if (v.state === 'driving') {
+        const p = pathPoint(v.path); if (!p) continue;
+        const f = Math.min(1, v.path.d / v.path.total), bs = boardSize(v);
+        drawVehicle(p.x, p.y, v.ang, bs.len + (ss.len - bs.len) * f, bs.wid + (ss.wid - bs.wid) * f, v.color, 1, 0);
+      } else if (v.state === 'parked' || v.state === 'full') {
+        const c = slotCenter(v.slot);
+        drawVehicle(c.x, c.y, -Math.PI / 2, ss.len, ss.wid, v.color, 1, 0);
+      } else if (v.state === 'departing') {
+        const p = pathPoint(v.path); if (!p) continue;
+        drawVehicle(p.x, p.y, v.ang, ss.len, ss.wid, v.color, 1, 0);
+      }
+    }
+
+    // места: сколько осталось
+    for (let s = 0; s < S.slots.length; s++) {
+      const id = S.slots[s];
+      if (id === null) continue;
+      const v = S.vehicles[id];
+      if (v.state === 'departing') continue;
+      const c = slotCenter(s);
+      const bw = 28, bh = 20, bx = c.x - bw / 2, by = L.slotsTop + L.slotH + 4;
+      ctx.fillStyle = PALETTE[v.color].dark;
+      rr(bx, by, bw, bh, 8); ctx.fill();
+      ctx.fillStyle = '#fff';
+      ctx.font = '800 13px Rubik, system-ui, sans-serif';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(String(v.seats), c.x, by + bh / 2 + 1);
+      ctx.textBaseline = 'alphabetic';
+    }
+
+    // пассажиры в прыжке
+    for (const f of S.flyers) {
+      const t = f.t / 260;
+      const x = f.from.x + (f.to.x - f.from.x) * t;
+      const y = f.from.y + (f.to.y - f.from.y) * t - Math.sin(Math.PI * t) * 24;
+      drawPassenger(x, y, L.pr * (1 - 0.4 * t), f.color);
+    }
+  }
+
+  // ---------- интерфейс ----------
+  let toastTimer = 0;
+  function toast(msg) {
+    const t = $('toast');
+    t.textContent = msg; t.hidden = false;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => { t.hidden = true; }, 1500);
+  }
+
+  function showModal(title, text, actions) {
+    $('mTitle').textContent = title;
+    $('mText').textContent = text;
+    const box = $('mActions');
+    box.innerHTML = '';
+    actions.forEach(([label, fn, primary]) => {
+      const b = document.createElement('button');
+      b.type = 'button'; b.textContent = label;
+      if (primary) b.className = 'primary';
+      b.addEventListener('click', fn);
+      box.appendChild(b);
+    });
+    $('modal').hidden = false;
+    box.firstChild && box.firstChild.focus();
+  }
+  function hideModal() { $('modal').hidden = true; }
+
+  function win() {
+    const last = S.idx === E.LEVELS.length - 1;
+    if (!last && S.idx + 1 > unlocked) {
+      unlocked = S.idx + 1;
+      try { localStorage.setItem('cr.unlocked', String(unlocked)); } catch (e) {}
+    }
+    hud();
+    if (last) showModal('Все рейсы выполнены!', 'Ты прошёл все три уровня.', [['Начать с первого', () => startLevel(0), true]]);
+    else showModal('Уровень пройден!', 'Все пассажиры разъехались по домам.', [
+      ['Уровень ' + (S.idx + 2), () => startLevel(S.idx + 1), true],
+      ['Сыграть ещё раз', () => startLevel(S.idx)],
+    ]);
+  }
+
+  function lose() {
+    hud();
+    const actions = [];
+    if (!S.bonusUsed) actions.push(['+1 место и продолжить', () => { addSlot(); hideModal(); }, true]);
+    actions.push(['Начать уровень заново', () => startLevel(S.idx), S.bonusUsed]);
+    showModal('Пробка!', 'Все места заняты, а следующему пассажиру не подходит ни одна машина.', actions);
+  }
+
+  function addSlot() {
+    if (S.bonusUsed) return;
+    S.bonusUsed = true;
+    S.slots.push(null);
+    S.over = false; S.endTimer = 0;
+    hud();
+  }
+
+  $('restartBtn').addEventListener('click', () => startLevel(S.idx));
+  $('bonusBtn').addEventListener('click', addSlot);
+  window.addEventListener('resize', () => { if (S) layout(); });
+
+  // ---------- запуск ----------
+  let last = 0;
+  function frame(t) {
+    const dt = last ? Math.min(50, t - last) : 16;
+    last = t;
+    if (S) { update(dt); draw(); }
+    requestAnimationFrame(frame);
+  }
+
+  function start(data) {
+    const idx = data && Number.isInteger(data.idx) ? data.idx : unlocked;
+    startLevel(Math.max(0, Math.min(E.LEVELS.length - 1, idx)));
+    requestAnimationFrame(frame);
+  }
+  window.claude?.hot?.snapshot?.(() => ({ idx: S ? S.idx : 0 }));
+  window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
+
+  // для автотестов
+  window.__game = { get state() { return S; }, tapVehicle: (id) => tapVehicle(S.vehicles[id]), startLevel };
+})();
+</script>
+</body>
+</html>
